@@ -1,6 +1,11 @@
 'use strict';
 
 const Controller = require('egg').Controller;
+const path = require('path');
+const sendToWormhole = require('stream-wormhole');
+const fs = require('fs');
+const awaitWriteStream = require('await-stream-ready').write;
+const moment = require('moment');
 
 class UserController extends Controller{
     async loginOut(){
@@ -22,7 +27,9 @@ class UserController extends Controller{
             username: ctx.helper.decode(username),
             password: password,
             create_time: nowTime,
-            update_time: nowTime
+            update_time: nowTime,
+            avatar_url: path.join('app/public/avatarImg','default.jpg'),
+            role:["1"].join(",")
         }
         const flag = await ctx.service.user.save(newUser);
         if (flag === 1){
@@ -30,7 +37,8 @@ class UserController extends Controller{
             ctx.body={
                 status: 1,
                 msg: '注册成功',
-                username: newUser.username
+                username: newUser.username,
+                role:newUser.role
             }
         }else if(flag === -1){
             ctx.body = {
@@ -62,6 +70,12 @@ class UserController extends Controller{
         }else {
             // 设置 Session
             // ctx.session.user = {username:user.username};
+            let mime = path.extname(user["avatar_url"]);
+            if(mime === ".jpg" || mime === ".jpeg"){
+                mime = "image/jpeg";
+            }else{
+                mime = "image/png";
+            }
             if(ifMemberMe){
                 ctx.cookies.set('username',user.username,{httpOnly:false,maxAge:this.config.rememberMeCookie});
             }else{
@@ -70,7 +84,56 @@ class UserController extends Controller{
             ctx.body = {
                 status: 1,
                 msg: '登陆成功',
-                username: user.username
+                username: user.username,
+                role:user.role,
+                mime:mime
+            }
+        }
+    }
+
+    async avatar(){
+        const {ctx} = this;
+        const preUrl = await ctx.service.user.getPreAvatar(ctx.helper.decode(ctx.query.username));
+        const readStream = fs.createReadStream(preUrl);
+        ctx.body = readStream;
+    }
+
+    async changeAvatar(){
+        const {ctx} = this;
+
+        const stream = await ctx.getFileStream();
+        const filename = ctx.cookies.get("username")+moment().format("YYYYMMDDHHmmssSSS")+path.extname(stream.filename).toLocaleLowerCase();
+        const target = path.join('app/public/avatarImg',filename);
+        const writeStream = fs.createWriteStream(target);
+        if(stream.mime !== "image/jpeg" && stream.mime !== "image/png"){
+            ctx.body={
+                status: 0,
+                msg: '更换失败，类型错误'
+            }
+        }else{
+            const preUrl = await ctx.service.user.getPreAvatar(ctx.cookies.get("username"));
+            // let preTarget = path.join('app',preUrl);
+            try{
+                if(preUrl && preUrl !== path.join('app/public/avatarImg','default.jpg')){
+                    fs.unlinkSync(preUrl);
+                }
+                await awaitWriteStream(stream.pipe(writeStream));
+            }catch(err){
+                await sendToWormhole(stream);
+                throw err;
+            }
+            const res = await ctx.service.user.updateAvatarUrl(ctx.cookies.get("username"),target);
+            if(res){
+                ctx.body={
+                    status: 1,
+                    mime:stream.mime,
+                    msg: '更换成功'
+                }
+            }else{
+                ctx.body={
+                    status: 4,
+                    msg: '更换失败'
+                }
             }
         }
     }

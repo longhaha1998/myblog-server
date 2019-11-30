@@ -34,6 +34,28 @@ class UserService extends Service{
             return true;
         }
     }
+
+    async updateAvatarUrl(username, url){
+        const row = {
+            avatar_url: url
+        };
+        const options = {
+            where:{
+                username: username
+            }
+        };
+        const result = await this.app.mysql.update('user', row, options);
+        return result.affectedRows === 1;
+    }
+
+    async getPreAvatar(username){
+        const user = await this.app.mysql.get('user', { username: username });
+        if (!user){
+            return false
+        } else {
+            return user["avatar_url"];
+        }
+    }
 }
 
 module.exports = UserService;

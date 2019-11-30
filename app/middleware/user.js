@@ -1,6 +1,6 @@
 module.exports = (options, app) => {
     return async function ifLogined(ctx, next){
-        if( ctx.request.path === '/login' || ctx.request.path === '/register'){
+        if(ctx.request.path === '/avatar' || ctx.request.path === '/login' || ctx.request.path === '/register'){
             await next();
         }else{
             if(ctx.cookies.get('username')){

@@ -9,4 +9,7 @@ module.exports = app => {
   router.post('/register', controller.user.register);
   router.post('/login', controller.user.login);
   router.post('/loginOut', controller.user.loginOut);
+
+  router.get('/avatar', controller.user.avatar);
+  router.post('/postAvatar', controller.user.changeAvatar);
 };
