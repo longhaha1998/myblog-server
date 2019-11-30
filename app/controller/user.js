@@ -95,6 +95,7 @@ class UserController extends Controller{
         const {ctx} = this;
         const preUrl = await ctx.service.user.getPreAvatar(ctx.helper.decode(ctx.query.username));
         const readStream = fs.createReadStream(preUrl);
+        ctx.set('Content-Type','application/octet-stream');
         ctx.body = readStream;
     }
 
