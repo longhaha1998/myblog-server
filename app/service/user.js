@@ -27,11 +27,16 @@ class UserService extends Service{
     }
 
     async check(username){
-        const user = await this.app.mysql.get('user', {username: username});
-        if(!user){
-            return false;
-        }else{
-            return true;
+        try{
+            const user = await this.app.mysql.get('user', {username: username});
+            if(!user){
+                return false;
+            }else{
+                return true;
+            }
+        }catch(err){
+            console.log(err)
+            throw err;
         }
     }
 

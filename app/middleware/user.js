@@ -4,13 +4,21 @@ module.exports = (options, app) => {
             await next();
         }else{
             if(ctx.cookies.get('username')){
-                let flag = await ctx.service.user.check(ctx.cookies.get('username'));
-                if (flag) {
-                    await next();
-                } else {
-                    ctx.boy = {
-                        status: -2,
-                        msg: '身份认证已过期，用户名不存在，请重新登录'
+                let flag;
+                try{
+                    flag = await ctx.service.user.check(ctx.cookies.get('username'));
+                }catch(err){
+                    console.log(err);
+                    throw err;
+                }finally{
+                    if (flag) {
+                        await next();
+                    } else {
+                        ctx.cookies.set('username',null,{httpOnly:false});
+                        ctx.boy = {
+                            status: -2,
+                            msg: '身份认证已过期，用户名不存在，请重新登录'
+                        }
                     }
                 }
             }else{

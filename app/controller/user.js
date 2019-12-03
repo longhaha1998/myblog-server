@@ -101,7 +101,6 @@ class UserController extends Controller{
 
     async changeAvatar(){
         const {ctx} = this;
-
         const stream = await ctx.getFileStream();
         const filename = ctx.cookies.get("username")+moment().format("YYYYMMDDHHmmssSSS")+path.extname(stream.filename).toLocaleLowerCase();
         const target = path.join('app/public/avatarImg',filename);
