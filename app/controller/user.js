@@ -106,6 +106,7 @@ class UserController extends Controller{
         const target = path.join('app/public/avatarImg',filename);
         const writeStream = fs.createWriteStream(target);
         if(stream.mime !== "image/jpeg" && stream.mime !== "image/png"){
+            await sendToWormhole(stream);
             ctx.body={
                 status: 0,
                 msg: '更换失败，类型错误'
@@ -120,7 +121,7 @@ class UserController extends Controller{
                 await awaitWriteStream(stream.pipe(writeStream));
             }catch(err){
                 await sendToWormhole(stream);
-                throw err;
+                console.log(err);
             }
             const res = await ctx.service.user.updateAvatarUrl(ctx.cookies.get("username"),target);
             if(res){

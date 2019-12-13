@@ -1,6 +1,7 @@
 module.exports = (options, app) => {
     return async function ifLogined(ctx, next){
-        if(ctx.request.path === '/avatar' || ctx.request.path === '/login' || ctx.request.path === '/register'){
+        ctx.app.redis.flushall();
+        if(ctx.request.path === '/getArticleById' || ctx.request.path === '/getArticleList' || ctx.request.path === '/getArticleType' || ctx.request.path === '/avatar' || ctx.request.path === '/login' || ctx.request.path === '/register'){
             await next();
         }else{
             if(ctx.cookies.get('username')){
@@ -9,7 +10,6 @@ module.exports = (options, app) => {
                     flag = await ctx.service.user.check(ctx.cookies.get('username'));
                 }catch(err){
                     console.log(err);
-                    throw err;
                 }finally{
                     if (flag) {
                         await next();

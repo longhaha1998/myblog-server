@@ -12,3 +12,7 @@ exports.uuid = function uuid() {
 exports.decode = function decode(data){
     return Base64.decode(data);
 }
+
+exports.encode = function encode(data){
+    return Base64.encode(data);
+}
