@@ -26,6 +26,26 @@ class ArticleService extends Service{
         }
     }
 
+    async getUserArticle(user){
+        try{
+            const sql = "SELECT id,type,detail FROM article WHERE author = ?";
+            const list = await this.app.mysql.query(sql,[user]);
+            return list;
+        }catch(err){
+            console.log(err);
+        }
+    }
+
+    async getAllArticle(){
+        try{
+            const sql = "SELECT id,title,author,type,visible,create_time,update_time FROM article";
+            const list =await this.app.mysql.query(sql);
+            return list;
+        }catch(err){
+            console.log(err);
+        }
+    }
+
     async getMyArticle(author){
         try{
             const sql = "SELECT id,title,detail,author,type,visible,create_time,update_time FROM article WHERE author = ?";
@@ -65,6 +85,15 @@ class ArticleService extends Service{
             const sql = "SELECT id,title,detail,author,type,visible,create_time,update_time FROM article WHERE title LIKE ?";
             const result =await this.app.mysql.query(sql, [param]);
             return result;
+        }catch(err){
+            console.log(err);
+        }
+    }
+
+    async deleteArticleById(id){
+        try{
+            let result = await this.app.mysql.delete("article",{id: id});
+            return result.affectedRows === 1;
         }catch(err){
             console.log(err);
         }

@@ -1,6 +1,5 @@
 module.exports = (options, app) => {
     return async function ifLogined(ctx, next){
-        ctx.app.redis.flushall();
         if(ctx.request.path === '/getArticleById' || ctx.request.path === '/getArticleList' || ctx.request.path === '/getArticleType' || ctx.request.path === '/avatar' || ctx.request.path === '/login' || ctx.request.path === '/register'){
             await next();
         }else{

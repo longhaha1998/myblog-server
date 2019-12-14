@@ -18,38 +18,54 @@ class UserController extends Controller{
     }
 
     async register(){
-        const { ctx } = this;
-        const {username, password} = ctx.request.body;
-
-        const nowTime = new Date();
-        const newUser = {
-            id: ctx.helper.uuid(),
-            username: ctx.helper.decode(username),
-            password: password,
-            create_time: nowTime,
-            update_time: nowTime,
-            avatar_url: path.join('app/public/avatarImg','default.jpg'),
-            role:["1"].join(",")
-        }
-        const flag = await ctx.service.user.save(newUser);
-        if (flag === 1){
-            ctx.cookies.set('username',newUser.username,{httpOnly:false,maxAge:this.config.rememberMeCookie});
-            ctx.body={
-                status: 1,
-                msg: '注册成功',
-                username: newUser.username,
-                role:newUser.role
+        try{
+            const { ctx } = this;
+            const {username, password} = ctx.request.body;
+            const nowTime = new Date();
+            let tempId = ctx.helper.uuid();
+            const newUser = {
+                id: tempId,
+                username: ctx.helper.decode(username),
+                password: password,
+                create_time: nowTime,
+                update_time: nowTime,
+                avatar_url: path.join('app/public/avatarImg','default.jpg'),
+                role:JSON.stringify(["1"])
             }
-        }else if(flag === -1){
-            ctx.body = {
-                status: -1,
-                msg: '用户名已存在'
+            const redis = this.app.redis;
+            if(redis){
+                const flag = await ctx.service.user.save(newUser);
+                if (flag === 1){
+                    if(!redis.zcard("allUser")){
+                        await ctx.service.redisHelper.getAllUser();
+                    }
+                    await redis.zadd("allUser",tempId,JSON.stringify(newUser));
+                    ctx.cookies.set('username',newUser.username,{httpOnly:false,maxAge:this.config.rememberMeCookie});
+                    ctx.body={
+                        status: 1,
+                        msg: '注册成功',
+                        username: newUser.username,
+                        role:newUser.role
+                    }
+                }else if(flag === -1){
+                    ctx.body = {
+                        status: -1,
+                        msg: '用户名已存在'
+                    }
+                }else{
+                    ctx.body = {
+                        status: 0,
+                        msg: '注册失败'
+                    }
+                }
+            }else{
+                ctx.body={
+                    status: 0,
+                    msg: "redis错误"
+                }
             }
-        }else{
-            ctx.body = {
-                status: 0,
-                msg: '注册失败'
-            }
+        }catch(err){
+            console.log(err);
         }
     }
 
@@ -113,7 +129,6 @@ class UserController extends Controller{
             }
         }else{
             const preUrl = await ctx.service.user.getPreAvatar(ctx.cookies.get("username"));
-            // let preTarget = path.join('app',preUrl);
             try{
                 if(preUrl && preUrl !== path.join('app/public/avatarImg','default.jpg')){
                     fs.unlinkSync(preUrl);
@@ -136,6 +151,185 @@ class UserController extends Controller{
                     msg: '更换失败'
                 }
             }
+        }
+    }
+
+    async getAllUser(){
+        const {ctx} = this;
+        const redis = this.app.redis;
+        try{
+            if(redis){
+                if(!await redis.zcard("allUser")){
+                    await ctx.service.redisHelper.getAllUser();
+                }
+                let count = await redis.zcard(ctx.query.type);
+                let temp = await redis.zrange(ctx.query.type,ctx.query.begin,ctx.query.end);
+                let userList = temp.map(ele => {
+                    let temp = JSON.parse(ele);
+                    temp.role = JSON.parse(temp.role);
+                    delete temp.id;
+                    return temp
+                });
+                ctx.body = {
+                    status:1,
+                    count:count,
+                    data: userList
+                }
+            }else{
+                ctx.body={
+                    status: 0,
+                    msg: "redis错误"
+                };
+            }
+        }catch(err){
+            console.log(err);
+        }
+    }
+
+    async updateRight(){
+        try{
+            const {ctx} = this;
+            const {user, ifAdd, ifWrite} = ctx.query;
+            const redis = this.app.redis;
+            if(redis){
+                const tempUser =await ctx.service.user.getUserByName(user);
+                if(tempUser){
+                    if(ifAdd === "true"){
+                        if(ifWrite === "true"){
+                            tempUser.role = JSON.parse(tempUser.role);
+                            tempUser.role.push("2");
+                            tempUser.role = JSON.stringify(tempUser.role);
+                        }else{
+                            tempUser.role = JSON.parse(tempUser.role);
+                            tempUser.role.push("666");
+                            tempUser.role = JSON.stringify(tempUser.role);
+                        }
+                    }else{
+                        if(ifWrite === "true"){
+                            tempUser.role = JSON.parse(tempUser.role);
+                            tempUser.role.splice(tempUser.role.indexOf("2"),1);
+                            tempUser.role = JSON.stringify(tempUser.role);
+                        }else{
+                            tempUser.role = JSON.parse(tempUser.role);
+                            tempUser.role.splice(tempUser.role.indexOf("666"),1);
+                            tempUser.role = JSON.stringify(tempUser.role);
+                        }
+                    }
+                    tempUser.update_time = new Date();
+                    let flag = await ctx.service.user.updateRole(user, tempUser.role, tempUser.update_time);
+                    if(flag){
+                        await redis.zremrangebyscore("allUser",tempUser.id,tempUser.id);
+                        await redis.zadd("allUser",tempUser.id,JSON.stringify(tempUser));
+                        let count = await redis.zcard("allUser");
+                        let tempData = await redis.zrange("allUser",ctx.query.begin,ctx.query.end);
+                        let tableList = tempData.map(ele => {
+                            let temp = JSON.parse(ele);
+                            temp.role = JSON.parse(temp.role);
+                            delete temp.id;
+                            return temp
+                        });
+                        ctx.body = {
+                            status: 1,
+                            msg: "更新成功",
+                            count: count,
+                            data: tableList
+                        }
+                    }else{
+                        ctx.body = {
+                            status: 0,
+                            msg: "更新失败"
+                        }
+                    }
+                }else{
+                    ctx.body = {
+                        status: 0,
+                        msg: "更新失败"
+                    }
+                }
+            }else{
+                ctx.body={
+                    status: 0,
+                    msg: "redis错误"
+                }
+            }
+        }catch(err){
+            console.log(err);
+        }
+    }
+
+    async deleteUserByName(){
+        try{
+            const {ctx} = this;
+            const redis = this.app.redis;
+            if(redis){ 
+                const tempUser =await ctx.service.user.getUserByName(ctx.query.user);
+                const flag = await ctx.service.user.deleteUserByName(ctx.query.user);
+                if(flag){
+                    if(tempUser.avatar_url && tempUser.avatar_url !== path.join('app/public/avatarImg','default.jpg')){
+                        fs.unlinkSync(tempUser.avatar_url);
+                    }
+                    await redis.zremrangebyscore("allUser",tempUser.id,tempUser.id);
+                    await ctx.service.redisHelper.deleteUserArticle(ctx.query.user);
+                    let count = await redis.zcard("allUser");
+                    let tempData = await redis.zrange("allUser",ctx.query.begin,ctx.query.end);
+                    let tableList = tempData.map(ele => {
+                        let temp = JSON.parse(ele);
+                        temp.role = JSON.parse(temp.role);
+                        delete temp.id;
+                        return temp
+                    });
+                    ctx.body={
+                        status:1,
+                        data: tableList,
+                        count: count,
+                        mag: "删除成功"
+                    }
+                }else{
+                    ctx.body={
+                        status: 0,
+                        msg: "删除失败"
+                    } 
+                }
+            }else{
+                ctx.body={
+                    status: 0,
+                    msg: "redis错误"
+                }
+            }
+        }catch(err){
+            console.log(err);
+        }
+    }
+
+    async getSearchUserList(){
+        const {ctx} = this;
+        const redis = this.app.redis;
+        try{
+            if(redis){
+                if(ctx.query.searchVal){
+                    await ctx.service.redisHelper.getSerchUserRedis(ctx.query.searchVal);
+                }
+                let count = await redis.zcard(ctx.query.type);
+                let temp = await redis.zrange(ctx.query.type,ctx.query.begin,ctx.query.end);
+                let userList = temp.map(ele => {
+                    let temp = JSON.parse(ele);
+                    temp.role = JSON.parse(temp.role);
+                    delete temp.id;
+                    return temp
+                });
+                ctx.body = {
+                    status:1,
+                    count:count,
+                    data: userList
+                }
+            }else{
+                ctx.body={
+                    status: 0,
+                    msg: "redis错误"
+                }
+            }
+        }catch(err){
+            console.log(err);
         }
     }
 }

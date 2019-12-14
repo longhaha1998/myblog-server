@@ -89,14 +89,21 @@ class ArticleController extends Controller {
         const flag = await ctx.service.article.save(newArticle);
         if(redis){
             if(await redis.zcard("articleList")>0){
-                await redis.zadd("articleList",tempId,JSON.stringify(newArticle));
-                await redis.zadd(`${type}ArticleList`,tempId,JSON.stringify(newArticle));
+                if(visible){
+                    await redis.zadd("articleList",tempId,JSON.stringify(newArticle));
+                    await redis.zadd(`${type}ArticleList`,tempId,JSON.stringify(newArticle));
+                }
             }
             if(await redis.zcard(`${author}ArticleCache`)>0){
                 await redis.zadd(`${author}ArticleCache`,tempId,JSON.stringify(newArticle));
                 await redis.zadd(`${author}${type}ArticleCache`,tempId,JSON.stringify(newArticle));
             }
             await redis.set(tempId,JSON.stringify(newArticle),'EX',2*24*60*60);
+            if(await redis.zcard("allArticle")){
+                let temp = newArticle;
+                delete temp.detail;
+                await redis.zadd("allArticle",tempId,JSON.stringify(temp));
+            }
         }
         if(flag){
             ctx.body={
@@ -222,8 +229,10 @@ class ArticleController extends Controller {
                 if(await redis.zcard("articleList")>0){
                     await redis.zremrangebyscore("articleList",id,id);
                     await redis.zremrangebyscore(`${type}ArticleList`,id,id);
-                    await redis.zadd("articleList",id,JSON.stringify(tempData));
-                    await redis.zadd(`${type}ArticleList`,id,JSON.stringify(tempData));
+                    if(visible){
+                        await redis.zadd("articleList",id,JSON.stringify(tempData));
+                        await redis.zadd(`${type}ArticleList`,id,JSON.stringify(tempData));
+                    }
                 }
                 if(await redis.zcard(`${author}ArticleCache`)){
                     await redis.zremrangebyscore(`${author}ArticleCache`,id,id);
@@ -232,6 +241,12 @@ class ArticleController extends Controller {
                     await redis.zadd(`${author}${type}ArticleCache`,id,JSON.stringify(tempData));
                 }
                 await redis.set(id,JSON.stringify(tempData),'EX',2*24*60*60);
+                if(await redis.zcard("allArticle")){
+                    await redis.zremrangebyscore("allArticle",id,id);
+                    let temp = tempData;
+                    delete temp.detail;
+                    await redis.zadd("allArticle",id,JSON.stringify(temp));
+                }
             }
             if(flag){
                 ctx.body={
@@ -268,6 +283,79 @@ class ArticleController extends Controller {
                     status:1,
                     count: count,
                     data: articleList
+                }
+            }else{
+                ctx.body={
+                    status: 0,
+                    msg: "redis错误"
+                }
+            }
+        }catch(err){
+            console.log(err);
+        }
+    }
+
+    async getAllAtricle(){
+        try{
+            const {ctx} = this;
+            const redis = this.app.redis;
+            if(redis){
+                if(!await redis.zcard("allArticle")){
+                    await ctx.service.redisHelper.updateAllArticleRedis();
+                }
+                let count = await redis.zcard(ctx.query.type);
+                let temp = await redis.zrange(ctx.query.type,ctx.query.begin,ctx.query.end);
+                let articleList = temp.map(ele => {
+                    return JSON.parse(ele);
+                });
+                ctx.body = {
+                    status:1,
+                    count:count,
+                    data: articleList
+                }
+            }else{
+                ctx.body={
+                    status: 0,
+                    msg: "redis错误"
+                }
+            }
+        }catch(err){
+            console.log(err);
+        }
+    }
+
+    async deleteArticleById(){
+        try{
+            const {ctx} = this;
+            const redis = this.app.redis;
+            if(redis){ 
+                const tempArticle = await ctx.service.article.getArticleById(ctx.query.id);
+                const pattern = /\!\[图片描述\]\(http:\/\/47\.103\.11\.183\:7001(.*?)\)/gm;
+                let temp = tempArticle.detail;
+                let data;
+                while((data = pattern.exec(temp) )!== null){
+                    fs.unlinkSync(path.join('app',data[1]));
+                }
+                const flag = await ctx.service.article.deleteArticleById(ctx.query.id);
+                if(flag){
+                    await redis.zremrangebyscore("allArticle",ctx.query.id,ctx.query.id);
+                    await ctx.service.redisHelper.deleteArticleById(ctx.query.id,tempArticle.type,tempArticle.author);
+                    let count = await redis.zcard("allArticle");
+                    let tempData = await redis.zrange("allArticle",ctx.query.begin,ctx.query.end);
+                    let tableList = tempData.map(ele => {
+                        return JSON.parse(ele);
+                    });
+                    ctx.body={
+                        status:1,
+                        data: tableList,
+                        count: count,
+                        mag: "删除成功"
+                    }
+                }else{
+                    ctx.body={
+                        status: 0,
+                        msg: "删除失败"
+                    } 
                 }
             }else{
                 ctx.body={

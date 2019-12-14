@@ -13,6 +13,18 @@ module.exports = app => {
   router.post('/login', controller.user.login);
   router.post('/loginOut', controller.user.loginOut);
 
+  // 获取用户数据
+  router.get('/getAllUser',controller.user.getAllUser);
+
+  // 更新用户权限
+  router.get('/updateRight',controller.user.updateRight);
+
+  // 删除用户
+  router.delete('/deleteUserByName',controller.user.deleteUserByName);
+
+  // 删除文章
+  router.delete('/deleteArticleById',controller.article.deleteArticleById)
+
   // 处理获取、上传头像
   router.get('/avatar', controller.user.avatar);
   router.post('/postAvatar', controller.user.changeAvatar);
@@ -27,5 +39,13 @@ module.exports = app => {
   router.get('/getArticleById', controller.article.getArticleById);
   router.post('/saveArticle', controller.article.saveArticle);
   router.post('/updateArticleById', controller.article.updateArticleById);
+
+  // 搜索文章
   router.get('/getSearchList', controller.article.getSearchList);
+
+  // 搜索用户
+  router.get('/getSearchUserList', controller.user.getSearchUserList);
+
+  // 获取所有文章用于管理
+  router.get('/getAllArticle', controller.article.getAllAtricle);
 };
