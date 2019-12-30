@@ -30,7 +30,7 @@
     "node": ">=10.0.0"
   },
   "scripts": {
-    "start": "egg-scripts start --daemon --title=egg-server-myBlog",
+    "start": "egg-scripts start --daemon --title=egg-server-myBlog --https.key=/usr/local/nginx/conf/cert/3236471_longhaha.top.key --https.cert=/usr/local/nginx/conf/cert/3236471_longhaha.top.pem",
     "stop": "egg-scripts stop --title=egg-server-myBlog",
     "dev": "egg-bin dev",
     "debug": "egg-bin debug",
