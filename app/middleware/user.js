@@ -6,7 +6,7 @@ module.exports = (options, app) => {
             if(ctx.cookies.get('username')){
                 let flag;
                 try{
-                    flag = await ctx.service.user.check(ctx.cookies.get('username'));
+                    flag = await ctx.service.user.check(ctx.helper.decode(ctx.cookies.get('username')));
                 }catch(err){
                     console.log(err);
                 }finally{

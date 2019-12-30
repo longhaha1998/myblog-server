@@ -37,10 +37,11 @@ class UserController extends Controller{
                 const flag = await ctx.service.user.save(newUser);
                 if (flag === 1){
                     if(!redis.zcard("allUser")){
+
                         await ctx.service.redisHelper.getAllUser();
                     }
                     await redis.zadd("allUser",tempId,JSON.stringify(newUser));
-                    ctx.cookies.set('username',newUser.username,{httpOnly:false,maxAge:this.config.rememberMeCookie});
+                    ctx.cookies.set('username',username,{httpOnly:false,maxAge:this.config.rememberMeCookie});
                     ctx.body={
                         status: 1,
                         msg: '注册成功',
@@ -93,9 +94,9 @@ class UserController extends Controller{
                 mime = "image/png";
             }
             if(ifMemberMe){
-                ctx.cookies.set('username',user.username,{httpOnly:false,maxAge:this.config.rememberMeCookie});
+                ctx.cookies.set('username',username,{httpOnly:false,maxAge:this.config.rememberMeCookie});
             }else{
-                ctx.cookies.set('username',user.username,{httpOnly:false,maxAge:24 * 60 * 60 * 1000});
+                ctx.cookies.set('username',username,{httpOnly:false,maxAge:24 * 60 * 60 * 1000});
             }
             ctx.body = {
                 status: 1,
@@ -118,7 +119,7 @@ class UserController extends Controller{
     async changeAvatar(){
         const {ctx} = this;
         const stream = await ctx.getFileStream();
-        const filename = ctx.cookies.get("username")+moment().format("YYYYMMDDHHmmssSSS")+path.extname(stream.filename).toLocaleLowerCase();
+        const filename = ctx.helper.decode(ctx.cookies.get("username"))+moment().format("YYYYMMDDHHmmssSSS")+path.extname(stream.filename).toLocaleLowerCase();
         const target = path.join('app/public/avatarImg',filename);
         const writeStream = fs.createWriteStream(target);
         if(stream.mime !== "image/jpeg" && stream.mime !== "image/png"){
@@ -128,7 +129,7 @@ class UserController extends Controller{
                 msg: '更换失败，类型错误'
             }
         }else{
-            const preUrl = await ctx.service.user.getPreAvatar(ctx.cookies.get("username"));
+            const preUrl = await ctx.service.user.getPreAvatar(ctx.helper.decode(ctx.cookies.get("username")));
             try{
                 if(preUrl && preUrl !== path.join('app/public/avatarImg','default.jpg')){
                     fs.unlinkSync(preUrl);
@@ -138,7 +139,7 @@ class UserController extends Controller{
                 await sendToWormhole(stream);
                 console.log(err);
             }
-            const res = await ctx.service.user.updateAvatarUrl(ctx.cookies.get("username"),target);
+            const res = await ctx.service.user.updateAvatarUrl(ctx.helper.decode(ctx.cookies.get("username")),target);
             if(res){
                 ctx.body={
                     status: 1,
