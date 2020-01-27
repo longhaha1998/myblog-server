@@ -38,7 +38,7 @@ class ArticleService extends Service{
 
     async getAllArticle(){
         try{
-            const sql = "SELECT id,title,author,type,visible,create_time,update_time FROM article WHERE type != ?";
+            const sql = "SELECT id,title,author,type,visible,create_time,update_time FROM article WHERE type <> ?";
             const list =await this.app.mysql.query(sql,["mood"]);
             return list;
         }catch(err){
