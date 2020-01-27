@@ -18,8 +18,8 @@ class ArticleService extends Service{
 
     async getArticleList(){
         try{
-            const sql = "SELECT id,title,detail,author,type,visible,create_time,update_time FROM article WHERE visible = 1 AND type <> mood";
-            const list =await this.app.mysql.query(sql);
+            const sql = "SELECT id,title,detail,author,type,visible,create_time,update_time FROM article WHERE visible = 1 AND type != ?";
+            const list =await this.app.mysql.query(sql,["mood"]);
             return list;
         }catch(err){
             console.log(err);
