@@ -6,7 +6,10 @@
 module.exports = app => {
   const { router, controller } = app;
   router.get('/', controller.home.index);
-  router.get('/ifLogined', controller.home.ifLogined)
+  router.get('/ifLogined', controller.home.ifLogined);
+
+  // 获取用户id
+  router.get('/getUserId', controller.user.getUserId);
 
   // 处理登录登出
   router.post('/register', controller.user.register);
@@ -48,4 +51,7 @@ module.exports = app => {
 
   // 获取所有文章用于管理
   router.get('/getAllArticle', controller.article.getAllAtricle);
+
+  // 个人主页获取用户信息
+  router.get('/getUserInfo', controller.data.getUserInfo);
 };

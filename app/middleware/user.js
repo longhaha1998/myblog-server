@@ -14,7 +14,7 @@ module.exports = (options, app) => {
                         await next();
                     } else {
                         ctx.cookies.set('username',null,{httpOnly:false});
-                        ctx.boy = {
+                        ctx.body = {
                             status: -2,
                             msg: '身份认证已过期，用户名不存在，请重新登录'
                         }
