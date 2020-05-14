@@ -8,6 +8,28 @@ const awaitWriteStream = require('await-stream-ready').write;
 const moment = require('moment');
 
 class UserController extends Controller{
+
+    async getUserId(){
+        const { ctx } = this;
+        const { name } = ctx.query;
+        try{
+            const data = await ctx.service.user.getUserIdByName(name);
+            if(data.length>0){
+                ctx.body = {
+                    id: data[0].id,
+                    status: 1
+                }
+            }else{
+                ctx.body = {
+                    msg: "身份认证失败",
+                    status: 0
+                }
+            }
+        }catch(err){
+            console.log(err);
+        }
+    }
+
     async loginOut(){
         const { ctx } = this;
         ctx.cookies.set('username',null,{httpOnly:false});
@@ -30,6 +52,7 @@ class UserController extends Controller{
                 create_time: nowTime,
                 update_time: nowTime,
                 avatar_url: path.join('app/public/avatarImg','default.jpg'),
+                collection: JSON.stringify([]),
                 role:JSON.stringify(["1"])
             }
             const redis = this.app.redis;
@@ -46,7 +69,9 @@ class UserController extends Controller{
                         status: 1,
                         msg: '注册成功',
                         username: newUser.username,
-                        role:newUser.role
+                        role:newUser.role,
+                        collection:newUser.collection,
+                        id:tempId,
                     }
                 }else if(flag === -1){
                     ctx.body = {
@@ -103,6 +128,8 @@ class UserController extends Controller{
                 msg: '登陆成功',
                 username: user.username,
                 role:user.role,
+                id:user.id,
+                collection:user.collection,
                 mime:mime
             }
         }

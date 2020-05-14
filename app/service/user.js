@@ -1,6 +1,18 @@
 const Service = require('egg').Service;
 
 class UserService extends Service{
+
+    async getUserIdByName(name){
+        try{
+            const param = '%'+name+'%';
+            const sql = "SELECT id FROM user WHERE username LIKE ?";
+            const result =await this.app.mysql.query(sql, [param]);
+            return result;
+        }catch(err){
+            console.log(err);
+        }
+    }
+
     async save(user){
         try{
             const userQ = await this.app.mysql.get('user', {username: user.username});

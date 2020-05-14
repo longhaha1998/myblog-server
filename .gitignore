@@ -2,7 +2,6 @@ logs/
 npm-debug.log
 yarn-error.log
 node_modules/
-app/public/mdPic
 package-lock.json
 yarn.lock
 coverage/
