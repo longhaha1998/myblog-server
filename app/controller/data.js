@@ -152,6 +152,9 @@ class DataController extends Controller {
         try{
             const {ctx} = this;
             await ctx.service.data.updateClickTimes();
+            ctx.body = {
+                status:1
+            }
         }catch(err){
             console.log(err);
         }
@@ -161,6 +164,9 @@ class DataController extends Controller {
         try{
             const {ctx} = this;
             await ctx.service.data.updateUserTimes();
+            ctx.body = {
+                status:1
+            }
         }catch(err){
             console.log(err);
         }
@@ -170,6 +176,9 @@ class DataController extends Controller {
         try{
             const {ctx} = this;
             await ctx.service.data.updateArticleTimes(ctx.query.type);
+            ctx.body = {
+                status:1
+            }
         }catch(err){
             console.log(err);
         }
