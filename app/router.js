@@ -54,4 +54,15 @@ module.exports = app => {
 
   // 个人主页获取用户信息
   router.get('/getUserInfo', controller.data.getUserInfo);
+
+  // 网站KOL获取文章信息
+  router.get('/getArticleTypeInfo', controller.data.getArticleTypeInfo);
+
+  router.get('/getWebInfo', controller.data.getWebInfo);
+
+  router.get('/getPersonalKOLInfo', controller.data.getPersonalKOLInfo);
+
+  router.get('/updateClickTimes', controller.data.updateClickTimes);
+  router.get('/updateUserTimes', controller.data.updateUserTimes);
+  router.get('/updateArticleTimes', controller.data.updateArticleTimes);
 };
